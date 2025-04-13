@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 
 // Interface for chat messages
@@ -35,6 +34,18 @@ export const setApiKey = (key: string) => {
 export const hasApiKey = (): boolean => {
   return apiKey.length > 0;
 };
+
+// Load API key from local storage on initialization
+export const loadApiKeyFromStorage = () => {
+  const savedKey = localStorage.getItem('deepseek_api_key');
+  if (savedKey) {
+    apiKey = savedKey;
+  }
+  return apiKey.length > 0;
+};
+
+// Initialize API key load when the module is imported
+loadApiKeyFromStorage();
 
 export const generateAIResponse = async (
   userMessage: string, 

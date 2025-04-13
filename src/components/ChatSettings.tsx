@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Settings } from 'lucide-react';
-import { setApiKey, hasApiKey } from '@/utils/deepSeekService';
+import { setApiKey, hasApiKey, loadApiKeyFromStorage } from '@/utils/deepSeekService';
 import { useRole } from '@/context/RoleContext';
 import { toast } from '@/hooks/use-toast';
 
@@ -19,11 +19,11 @@ const ChatSettings: React.FC<ChatSettingsProps> = ({ open, onOpenChange }) => {
   const isConfigurable = role === 'owner' || role === 'admin';
 
   useEffect(() => {
-    // Initialize from local storage if available
+    // Use the new loadApiKeyFromStorage method
     const savedKey = localStorage.getItem('deepseek_api_key');
     if (savedKey) {
       setApiKeyState(savedKey);
-      setApiKey(savedKey);
+      loadApiKeyFromStorage(); // This ensures the key is loaded globally
     }
   }, []);
 
