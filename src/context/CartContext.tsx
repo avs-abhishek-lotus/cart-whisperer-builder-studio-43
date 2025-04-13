@@ -1,4 +1,3 @@
-
 import React, { createContext, useReducer, useContext, ReactNode } from 'react';
 
 export type Product = {
@@ -147,6 +146,56 @@ export const useCart = () => {
   const context = useContext(CartContext);
   if (context === undefined) {
     throw new Error('useCart must be used within a CartProvider');
+  }
+  return context;
+};
+
+export const CartAPI = {
+  getCartItems: (): CartItem[] => {
+    const context = useCartInternal();
+    return context.state.items;
+  },
+  
+  getCartTotal: (): number => {
+    const context = useCartInternal();
+    return context.totalPrice;
+  },
+  
+  getCartItemCount: (): number => {
+    const context = useCartInternal();
+    return context.totalItems;
+  },
+  
+  addProductToCart: (product: Product): void => {
+    const context = useCartInternal();
+    context.addItem(product);
+  },
+  
+  removeProductFromCart: (productId: string): void => {
+    const context = useCartInternal();
+    context.removeItem(productId);
+  },
+  
+  updateProductQuantity: (productId: string, quantity: number): void => {
+    const context = useCartInternal();
+    context.updateQuantity(productId, quantity);
+  },
+  
+  clearAllItems: (): void => {
+    const context = useCartInternal();
+    context.clearCart();
+  },
+  
+  getProductById: (productId: string): CartItem | undefined => {
+    const context = useCartInternal();
+    return context.state.items.find(item => item.id === productId);
+  }
+};
+
+const useCartInternal = () => {
+  const context = useContext(CartContext);
+  if (context === undefined) {
+    throw new Error('useCartInternal must be used within a CartProvider');
   }
   return context;
 };

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Settings, Info, Database } from 'lucide-react';
+import { Settings, Info, Database, ShoppingCart } from 'lucide-react';
 import { setApiKey, hasApiKey, loadApiKeyFromStorage, initializeDeepSeekConnection } from '@/utils/deepSeekService';
 import { useRole } from '@/context/RoleContext';
 import { toast } from '@/hooks/use-toast';
@@ -156,6 +156,10 @@ const ChatSettings: React.FC<ChatSettingsProps> = ({ open, onOpenChange }) => {
                       <p className="mt-2 font-medium text-blue-700">AI Product Database:</p>
                       <p className="mt-1">DeepSeek AI is now connected to our product database and can query it to provide accurate product recommendations based on customer queries. It can analyze customer messages to extract details like age, budget, and use case to find the most appropriate products.</p>
                       <p className="mt-1">When customers ask about products for specific age groups (e.g., "for my 8-year-old daughter"), the AI will automatically query the database and recommend age-appropriate items.</p>
+                      
+                      <p className="mt-2 font-medium text-blue-700">Shopping Cart Integration:</p>
+                      <p className="mt-1">DeepSeek AI is now connected to the shopping cart system and can provide information about current cart items, suggest complementary products, and help with cart management.</p>
+                      <p className="mt-1">The AI assistant can view the cart contents and make relevant recommendations based on what's already in the customer's cart.</p>
                     </div>
                   </div>
                 </AccordionContent>

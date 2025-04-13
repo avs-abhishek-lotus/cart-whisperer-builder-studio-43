@@ -1,4 +1,5 @@
 import { toast } from "@/hooks/use-toast";
+import { CartAPI } from "@/context/CartContext";
 
 // Interface for chat messages
 export interface ChatMessage {
@@ -90,10 +91,15 @@ You have access to query our product database using the following functions:
 2. getRecommendedProducts(age, category, priceRange) - Get products filtered by age appropriateness, category, and price range
 
 SHOPPING CART API:
-- Current cart contents can be viewed by clicking the cart icon
-- Products can be added to the cart with quantity options
-- Items can be removed from the cart
-- Cart totals are automatically calculated including any applicable discounts
+The following shopping cart functions are available through our CartAPI:
+- getCartItems() - Returns an array of all items currently in the cart
+- getCartTotal() - Returns the total price of all items in the cart
+- getCartItemCount() - Returns the total number of items in the cart
+- addProductToCart(product) - Adds a product to the cart
+- removeProductFromCart(productId) - Removes a product from the cart
+- updateProductQuantity(productId, quantity) - Updates the quantity of a product in the cart
+- clearAllItems() - Removes all items from the cart
+- getProductById(productId) - Returns a specific product from the cart by ID
 
 PRODUCT RECOMMENDATION GUIDELINES:
 - For children under 12: Focus on durable, simple products with parental controls
@@ -116,6 +122,9 @@ When I mention "my daughter is 10 years old and needs something for school", you
 4. Make suitable recommendations based on results
 
 Your responses should mention specific products from our catalog that match the query parameters.
+
+CART AWARENESS:
+When a user asks about their cart or for recommendations, you should check the current cart contents using getCartItems() and consider what's already in the cart for your recommendations.
 
 COMMUNICATION STYLE:
 - Be friendly but professional
@@ -272,6 +281,31 @@ export const getRecommendedProducts = (
 };
 
 /**
+ * Get the current cart state to include in DeepSeek prompts
+ * @returns A description of the current cart state
+ */
+export const getCartState = (): string => {
+  try {
+    const cartItems = CartAPI.getCartItems();
+    const cartTotal = CartAPI.getCartTotal();
+    const itemCount = CartAPI.getCartItemCount();
+    
+    if (cartItems.length === 0) {
+      return "The shopping cart is currently empty.";
+    }
+    
+    const itemsDescription = cartItems.map(item => 
+      `- ${item.name} (Quantity: ${item.quantity}, Price: $${item.price.toFixed(2)})`
+    ).join('\n');
+    
+    return `Current shopping cart contains ${itemCount} item(s) with a total of $${cartTotal.toFixed(2)}:\n${itemsDescription}`;
+  } catch (error) {
+    console.error("Error getting cart state:", error);
+    return "Unable to access shopping cart information.";
+  }
+};
+
+/**
  * Run a product query against the database and format the results for DeepSeek
  * @param queryText The natural language query text
  */
@@ -326,12 +360,15 @@ export const runProductQuery = async (queryText: string): Promise<string> => {
       return "No products found matching your criteria. Would you like to see our most popular items instead?";
     }
     
-    // Format results for DeepSeek
+    // Get current cart information
+    const cartState = getCartState();
+    
+    // Format results for DeepSeek, including cart information
     const resultsText = combinedResults.map(product => 
       `Product: ${product.name}\nPrice: $${product.price}\nDescription: ${product.description}\nFeatures: ${product.features?.join(', ')}\n`
     ).join('\n');
     
-    return `Based on your query, I've found these products in our database:\n\n${resultsText}\n\nWould you like more details about any of these products?`;
+    return `Based on your query, I've found these products in our database:\n\n${resultsText}\n\n${cartState}\n\nWould you like more details about any of these products?`;
   } catch (error) {
     console.error("Error running product query:", error);
     return "I encountered an error while searching our product database. Please try a different query.";
@@ -366,6 +403,9 @@ export const generateAIResponse = async (
       productQueryResult = await runProductQuery(userMessage);
       console.log("Product query result:", productQueryResult);
     }
+    
+    // Get current cart state for context
+    const cartState = getCartState();
     
     // Format chat history for DeepSeek API
     const messages = [
@@ -411,6 +451,12 @@ export const generateAIResponse = async (
         content: `PRODUCT SEARCH RESULTS: ${productQueryResult}`
       });
     }
+    
+    // Add cart state as context
+    messages.push({
+      role: 'system',
+      content: `CART STATE: ${cartState}`
+    });
 
     console.log("Sending messages to DeepSeek:", messages);
 
