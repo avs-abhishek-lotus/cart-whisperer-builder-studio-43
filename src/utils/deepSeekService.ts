@@ -138,26 +138,31 @@ You are representing our brand, so be courteous and helpful at all times.`;
 // Function calling definitions for DeepSeek
 const FUNCTION_DEFINITIONS = [
   {
-    name: "searchProducts",
-    description: "Search for products that match certain criteria or keywords",
-    parameters: {
-      type: "object",
-      properties: {
-        query: {
-          type: "string",
-          description: "Search query or keywords to find relevant products"
+    type: "function",
+    function: {
+      name: "searchProducts",
+      description: "Search for products that match certain criteria or keywords",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "Search query or keywords to find relevant products"
+          },
+          category: {
+            type: "string",
+            description: "Optional product category to filter results (e.g., 'audio', 'wearables', 'computer-accessories')",
+            enum: ["audio", "wearables", "computer-accessories"]
+          }
         },
-        category: {
-          type: "string",
-          description: "Optional product category to filter results (e.g., 'audio', 'wearables', 'computer-accessories')",
-          enum: ["audio", "wearables", "computer-accessories"]
-        }
-      },
-      required: ["query"]
-    }
+        required: ["query"]
+      }  
+    }    
   },
   {
-    name: "getRecommendedProducts",
+    type: "function",
+    function: {
+      name: "getRecommendedProducts",
     description: "Get product recommendations based on age, category, and price range",
     parameters: {
       type: "object",
@@ -181,16 +186,22 @@ const FUNCTION_DEFINITIONS = [
           maxItems: 2
         }
       }
+      }  
     }
+    
   },
   {
-    name: "getCartContents",
+    type: "function",
+    function: {
+     name: "getCartContents",
     description: "Retrieve information about items currently in the shopping cart",
     parameters: {
       type: "object",
       properties: {}
     }
-  }
+  } 
+    }
+    
 ];
 
 export const setApiKey = (key: string) => {
