@@ -1,3 +1,4 @@
+
 import { toast } from "@/hooks/use-toast";
 
 // Interface for chat messages
@@ -6,6 +7,7 @@ export interface ChatMessage {
   text: string;
   sender: 'user' | 'bot';
   timestamp: Date;
+  role?: 'visitor' | 'agent' | 'deepseek';
 }
 
 // DeepSeek API configuration

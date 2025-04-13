@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Settings } from 'lucide-react';
+import { Settings, Info } from 'lucide-react';
 import { setApiKey, hasApiKey, loadApiKeyFromStorage } from '@/utils/deepSeekService';
 import { useRole } from '@/context/RoleContext';
 import { toast } from '@/hooks/use-toast';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 type ChatSettingsProps = {
   open: boolean;
@@ -65,6 +66,24 @@ const ChatSettings: React.FC<ChatSettingsProps> = ({ open, onOpenChange }) => {
                 Your API key is stored locally and is never sent to our servers.
               </p>
             </div>
+
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="chat-roles">
+                <AccordionTrigger className="text-sm">
+                  <div className="flex items-center">
+                    <Info className="mr-2 h-4 w-4" />
+                    About Chat Roles
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p><span className="font-medium">Visitor:</span> Messages sent as a website visitor/customer</p>
+                    <p><span className="font-medium">Agent:</span> Messages sent as a customer support agent</p>
+                    <p><span className="font-medium">DeepSeek:</span> Uses the DeepSeek API for AI-assisted responses (requires API key)</p>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
         ) : (
           <div className="py-4 text-center text-muted-foreground">
