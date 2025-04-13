@@ -1,3 +1,4 @@
+
 import { toast } from "@/hooks/use-toast";
 
 // Interface for chat messages
@@ -13,6 +14,19 @@ const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
 
 // This would typically come from environment variables
 let apiKey = "";
+
+// System prompt to set context for the AI
+const SYSTEM_PROMPT = `You are a helpful shopping assistant for our e-commerce website. 
+Your goal is to:
+- Provide friendly, concise assistance to website visitors
+- Answer questions about products, shipping, returns, and pricing
+- Give personalized recommendations when appropriate
+- Maintain a professional but conversational tone
+- Keep responses brief and to the point (1-3 sentences max)
+- Never make up information about products or policies you don't know about
+- Politely let users know if you need more information to help them
+
+You are representing our brand, so be courteous and helpful at all times.`;
 
 export const setApiKey = (key: string) => {
   apiKey = key;
@@ -37,10 +51,19 @@ export const generateAIResponse = async (
 
   try {
     // Format chat history for DeepSeek API
-    const messages = chatHistory.map(msg => ({
+    const messages = [
+      // Add system prompt as the first message
+      {
+        role: 'system',
+        content: SYSTEM_PROMPT
+      }
+    ];
+    
+    // Add chat history
+    messages.push(...chatHistory.map(msg => ({
       role: msg.sender === 'user' ? 'user' : 'assistant',
       content: msg.text
-    }));
+    })));
 
     // Add the new user message
     messages.push({
