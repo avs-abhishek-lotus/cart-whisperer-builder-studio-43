@@ -135,6 +135,64 @@ COMMUNICATION STYLE:
 
 You are representing our brand, so be courteous and helpful at all times.`;
 
+// Function calling definitions for DeepSeek
+const FUNCTION_DEFINITIONS = [
+  {
+    name: "searchProducts",
+    description: "Search for products that match certain criteria or keywords",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Search query or keywords to find relevant products"
+        },
+        category: {
+          type: "string",
+          description: "Optional product category to filter results (e.g., 'audio', 'wearables', 'computer-accessories')",
+          enum: ["audio", "wearables", "computer-accessories"]
+        }
+      },
+      required: ["query"]
+    }
+  },
+  {
+    name: "getRecommendedProducts",
+    description: "Get product recommendations based on age, category, and price range",
+    parameters: {
+      type: "object",
+      properties: {
+        age: {
+          type: "number",
+          description: "Age of the person to recommend products for (helps determine age-appropriate items)"
+        },
+        category: {
+          type: "string",
+          description: "Product category to filter recommendations",
+          enum: ["audio", "wearables", "computer-accessories"]
+        },
+        priceRange: {
+          type: "array",
+          description: "Min and max price range for recommendations in the format [min, max]",
+          items: {
+            type: "number"
+          },
+          minItems: 2,
+          maxItems: 2
+        }
+      }
+    }
+  },
+  {
+    name: "getCartContents",
+    description: "Retrieve information about items currently in the shopping cart",
+    parameters: {
+      type: "object",
+      properties: {}
+    }
+  }
+];
+
 export const setApiKey = (key: string) => {
   apiKey = key;
   // Re-initialize connection when API key changes
@@ -306,6 +364,63 @@ export const getCartState = (): string => {
 };
 
 /**
+ * Execute a function called by DeepSeek
+ * @param functionName The name of the function to call
+ * @param args The arguments to pass to the function
+ * @returns The result of the function call
+ */
+export const executeFunction = async (functionName: string, args: any): Promise<any> => {
+  console.log(`Executing function: ${functionName} with args:`, args);
+  
+  switch (functionName) {
+    case 'searchProducts':
+      return searchProducts(args.query, args.category);
+      
+    case 'getRecommendedProducts':
+      return getRecommendedProducts(
+        args.age, 
+        args.category, 
+        args.priceRange
+      );
+      
+    case 'getCartContents':
+      return CartAPI.getCartItems();
+      
+    default:
+      throw new Error(`Unknown function: ${functionName}`);
+  }
+};
+
+/**
+ * Format function results for DeepSeek
+ * @param results The results to format
+ * @returns Formatted results as a string
+ */
+export const formatFunctionResults = (functionName: string, results: any): string => {
+  if (!results || (Array.isArray(results) && results.length === 0)) {
+    return "No results found.";
+  }
+  
+  if (functionName === 'searchProducts' || functionName === 'getRecommendedProducts') {
+    return results.map((product: Product) => 
+      `Product: ${product.name}\nPrice: $${product.price}\nDescription: ${product.description}\nCategory: ${product.category}\nFeatures: ${product.features?.join(', ')}`
+    ).join('\n\n');
+  }
+  
+  if (functionName === 'getCartContents') {
+    if (results.length === 0) {
+      return "The shopping cart is currently empty.";
+    }
+    
+    return `Cart contains ${results.length} items:\n${results.map((item: any) => 
+      `- ${item.name} (Quantity: ${item.quantity}, Price: $${item.price.toFixed(2)})`
+    ).join('\n')}`;
+  }
+  
+  return JSON.stringify(results, null, 2);
+};
+
+/**
  * Run a product query against the database and format the results for DeepSeek
  * @param queryText The natural language query text
  */
@@ -460,18 +575,22 @@ export const generateAIResponse = async (
 
     console.log("Sending messages to DeepSeek:", messages);
 
+    // Setup request body with function calling
+    const requestBody: any = {
+      model: "deepseek-chat",
+      messages,
+      temperature: 0.7,
+      max_tokens: 1000,
+      tools: FUNCTION_DEFINITIONS
+    };
+
     const response = await fetch(DEEPSEEK_API_URL, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages,
-        temperature: 0.7,
-        max_tokens: 1000,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
@@ -481,6 +600,82 @@ export const generateAIResponse = async (
     }
 
     const data = await response.json();
+    
+    // Check if DeepSeek wants to call a function
+    if (data.choices[0]?.message?.tool_calls && data.choices[0].message.tool_calls.length > 0) {
+      console.log("DeepSeek wants to call functions:", data.choices[0].message.tool_calls);
+      
+      // Process each function call
+      const toolCalls = data.choices[0].message.tool_calls;
+      const functionResults = [];
+      
+      for (const toolCall of toolCalls) {
+        try {
+          const functionName = toolCall.function.name;
+          const args = JSON.parse(toolCall.function.arguments);
+          
+          // Execute the function
+          const result = await executeFunction(functionName, args);
+          
+          // Format the results
+          const formattedResult = formatFunctionResults(functionName, result);
+          
+          functionResults.push({
+            tool_call_id: toolCall.id,
+            function_name: functionName,
+            result: formattedResult
+          });
+        } catch (error) {
+          console.error("Error executing function:", error);
+          functionResults.push({
+            tool_call_id: toolCall.id,
+            error: error instanceof Error ? error.message : "Unknown error"
+          });
+        }
+      }
+      
+      // Continue the conversation with function results
+      if (functionResults.length > 0) {
+        console.log("Function results:", functionResults);
+        
+        // Add the assistant message with function calls
+        messages.push(data.choices[0].message);
+        
+        // Add the function results
+        for (const result of functionResults) {
+          messages.push({
+            role: 'tool',
+            tool_call_id: result.tool_call_id,
+            content: typeof result.result === 'string' ? result.result : JSON.stringify(result.result)
+          });
+        }
+        
+        // Make a follow-up request to get DeepSeek's response with function results
+        const followUpResponse = await fetch(DEEPSEEK_API_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: "deepseek-chat",
+            messages,
+            temperature: 0.7,
+            max_tokens: 1000
+          }),
+        });
+        
+        if (!followUpResponse.ok) {
+          const errorData = await followUpResponse.json();
+          console.error("DeepSeek follow-up API error:", errorData);
+          throw new Error(`DeepSeek API error: ${errorData.error?.message || 'Unknown error'}`);
+        }
+        
+        const followUpData = await followUpResponse.json();
+        return followUpData.choices[0]?.message?.content || "I couldn't generate a response with function results.";
+      }
+    }
+    
     return data.choices[0]?.message?.content || "I couldn't generate a response.";
   } catch (error) {
     console.error("Error calling DeepSeek API:", error);

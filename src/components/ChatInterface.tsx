@@ -91,7 +91,7 @@ const ChatInterface: React.FC = () => {
         // Pass all previous messages for context
         botResponse = await generateAIResponse(newMessage, messages);
         responseRole = 'deepseek';
-        console.log("Using DeepSeek AI with full conversation context");
+        console.log("Using DeepSeek AI with full conversation context and function calling");
       } else {
         // Simulate network delay for local response
         await new Promise(resolve => setTimeout(resolve, 1000));
