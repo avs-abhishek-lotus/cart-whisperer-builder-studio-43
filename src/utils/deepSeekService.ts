@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 
 // Interface for chat messages
@@ -10,31 +9,110 @@ export interface ChatMessage {
   role?: 'visitor' | 'agent' | 'deepseek';
 }
 
+// Product interface that matches the schema used in the cart
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  image: string;
+  category: string;
+  features?: string[];
+}
+
+// Sample product catalog for recommendations
+const PRODUCT_CATALOG: Product[] = [
+  {
+    id: "headphones-001",
+    name: "Premium Wireless Headphones",
+    price: 129.99,
+    description: "High-quality noise-canceling headphones with 30hr battery life",
+    image: "/products/headphones.jpg",
+    category: "audio",
+    features: ["Noise cancellation", "30hr battery", "Bluetooth 5.0", "Fast charging"]
+  },
+  {
+    id: "smartwatch-001",
+    name: "Smart Watch",
+    price: 199.99,
+    description: "Fitness tracking and heart monitoring for all ages",
+    image: "/products/smartwatch.jpg",
+    category: "wearables",
+    features: ["Heart rate monitor", "Step counter", "Sleep tracking", "Waterproof", "Suitable for teens and adults"]
+  },
+  {
+    id: "speaker-001",
+    name: "Portable Bluetooth Speaker",
+    price: 79.99,
+    description: "Waterproof speaker with 12hr playback",
+    image: "/products/speaker.jpg",
+    category: "audio",
+    features: ["Waterproof", "12hr playback", "Bluetooth connection", "Compact design"]
+  },
+  {
+    id: "keyboard-001",
+    name: "Ergonomic Keyboard",
+    price: 89.99,
+    description: "Comfortable mechanical keyboard with wrist support",
+    image: "/products/keyboard.jpg",
+    category: "computer-accessories",
+    features: ["Mechanical keys", "Wrist support", "RGB lighting", "Programmable keys"]
+  },
+  {
+    id: "sleeve-001",
+    name: "Ultra-thin Laptop Sleeve",
+    price: 29.99,
+    description: "Water-resistant sleeve available in various sizes",
+    image: "/products/laptop-sleeve.jpg",
+    category: "computer-accessories",
+    features: ["Water-resistant", "Multiple sizes", "Padded interior", "Slim profile"]
+  }
+];
+
 // DeepSeek API configuration
 const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
 
 // This would typically come from environment variables
 let apiKey = "";
 
-// System prompt to set context for the AI
+// Enhanced system prompt with detailed context about the website and shopping capabilities
 const SYSTEM_PROMPT = `You are a helpful shopping assistant for our e-commerce website. 
-Your goal is to:
-- Provide friendly, concise assistance to website visitors
-- Answer questions about products, shipping, returns, and pricing
-- Give personalized recommendations when appropriate
-- Maintain a professional but conversational tone
-- Keep responses brief and to the point (1-3 sentences max)
-- Never make up information about products or policies you don't know about
-- Politely let users know if you need more information to help them
 
-Important: You have access to our product catalog which includes:
-- Premium Wireless Headphones ($129.99): Noise-canceling, 30hr battery life
-- Smart Watch ($199.99): Fitness tracking, heart monitoring, suitable for teens and adults
-- Portable Bluetooth Speaker ($79.99): Waterproof, 12hr playback
-- Ergonomic Keyboard ($89.99): Mechanical keys, wrist support
-- Ultra-thin Laptop Sleeve ($29.99): Various sizes, water-resistant
+WEBSITE CONTEXT:
+Our website offers a curated selection of tech products with a shopping cart functionality. Visitors can browse products, add them to their cart, and checkout. The site has product pages with detailed information, a navigation menu, and a persistent shopping cart that shows the current items.
 
-When making recommendations, consider context from the entire conversation history.
+CAPABILITIES:
+1. You can search and recommend products from our catalog.
+2. You can help customers understand product features and compatibility.
+3. You can provide information about shipping, returns, and pricing.
+4. You can suggest alternatives when products don't meet customer needs.
+
+SHOPPING CART API (conceptual, for your understanding):
+- Current cart contents can be viewed by clicking the cart icon
+- Products can be added to the cart with quantity options
+- Items can be removed from the cart
+- Cart totals are automatically calculated including any applicable discounts
+
+PRODUCT RECOMMENDATION GUIDELINES:
+- For children under 12: Focus on durable, simple products with parental controls
+- For teenagers: Suggest trendy, versatile products with good value
+- For adults: Emphasize quality, features, and longevity
+- Always consider budget constraints when mentioned
+- Cross-sell complementary products when appropriate
+
+PRODUCT CATALOG:
+${PRODUCT_CATALOG.map(product => 
+  `- ${product.name} ($${product.price}): ${product.description}
+   Features: ${product.features?.join(', ')}`
+).join('\n')}
+
+COMMUNICATION STYLE:
+- Be friendly but professional
+- Keep responses concise (1-3 sentences max)
+- Ask clarifying questions when needed
+- Never make up information about products not in our catalog
+- Personalize responses based on the entire conversation history
+
 You are representing our brand, so be courteous and helpful at all times.`;
 
 export const setApiKey = (key: string) => {
@@ -56,6 +134,79 @@ export const loadApiKeyFromStorage = () => {
 
 // Initialize API key load when the module is imported
 loadApiKeyFromStorage();
+
+/**
+ * Search for products that match certain criteria
+ * This function simulates a product search functionality
+ */
+export const searchProducts = (query: string, category?: string): Product[] => {
+  const normalizedQuery = query.toLowerCase();
+  
+  return PRODUCT_CATALOG.filter(product => {
+    // Match by category if provided
+    if (category && product.category !== category) {
+      return false;
+    }
+    
+    // Match by product details
+    return (
+      product.name.toLowerCase().includes(normalizedQuery) ||
+      product.description.toLowerCase().includes(normalizedQuery) ||
+      product.features?.some(feature => 
+        feature.toLowerCase().includes(normalizedQuery)
+      )
+    );
+  });
+};
+
+/**
+ * Get product recommendations based on criteria
+ * @param age Optional age for age-appropriate recommendations
+ * @param category Optional product category
+ * @param priceRange Optional price range as [min, max]
+ */
+export const getRecommendedProducts = (
+  age?: number,
+  category?: string,
+  priceRange?: [number, number]
+): Product[] => {
+  let filtered = [...PRODUCT_CATALOG];
+  
+  // Filter by category
+  if (category) {
+    filtered = filtered.filter(p => p.category === category);
+  }
+  
+  // Filter by price range
+  if (priceRange) {
+    const [min, max] = priceRange;
+    filtered = filtered.filter(p => p.price >= min && p.price <= max);
+  }
+  
+  // Sort by age appropriateness if age is provided
+  if (age !== undefined) {
+    if (age < 12) {
+      // For children, prioritize simpler products
+      filtered.sort((a, b) => {
+        // Smartwatch is good for kids with parental features
+        if (a.id.includes('smartwatch')) return -1;
+        if (b.id.includes('smartwatch')) return 1;
+        return 0;
+      });
+    } else if (age < 18) {
+      // For teenagers, prioritize trendy items
+      filtered.sort((a, b) => {
+        // Smartwatches and headphones are popular with teens
+        if (a.id.includes('smartwatch') || a.id.includes('headphones')) return -1;
+        if (b.id.includes('smartwatch') || b.id.includes('headphones')) return 1;
+        return 0;
+      });
+    }
+    // Adults get the default sorting (no change)
+  }
+  
+  return filtered;
+};
 
 export const generateAIResponse = async (
   userMessage: string, 

@@ -84,6 +84,8 @@ const ChatSettings: React.FC<ChatSettingsProps> = ({ open, onOpenChange }) => {
                       <p className="font-medium text-blue-700">How to use AI assistance:</p>
                       <p className="mt-1">When messaging as an Agent, enable the "Use DeepSeek AI" option to get AI-assisted responses. The AI will help craft better responses based on the entire conversation history, including product information and customer context.</p>
                       <p className="mt-1">The DeepSeek AI will see the full conversation history, including all messages from both visitors and agents.</p>
+                      <p className="mt-2 font-medium text-blue-700">AI Product Recommendations:</p>
+                      <p className="mt-1">DeepSeek AI has been initialized with our complete product catalog and has intelligent recommendation capabilities based on customer age, preferences, and use cases. It can suggest appropriate products for children, teenagers, and adults.</p>
                     </div>
                   </div>
                 </AccordionContent>
