@@ -6,16 +6,22 @@ type RoleGuardProps = {
   allowedRoles: UserRole[];
   children: ReactNode;
   fallback?: ReactNode;
+  inverse?: boolean; // Show content for roles NOT in the allowed list
 };
 
 const RoleGuard: React.FC<RoleGuardProps> = ({ 
   allowedRoles, 
   children, 
-  fallback = null 
+  fallback = null,
+  inverse = false
 }) => {
   const { hasPermission } = useRole();
   
-  return hasPermission(allowedRoles) ? <>{children}</> : <>{fallback}</>;
+  const shouldRender = inverse 
+    ? !hasPermission(allowedRoles)
+    : hasPermission(allowedRoles);
+  
+  return shouldRender ? <>{children}</> : <>{fallback}</>;
 };
 
 export default RoleGuard;
