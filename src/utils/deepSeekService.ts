@@ -21,6 +21,13 @@ export interface Product {
   features?: string[];
 }
 
+// Define the API message interface for DeepSeek API
+interface DeepSeekMessage {
+  role: string;
+  content: string;
+  tool_call_id?: string;
+}
+
 // Sample product catalog for recommendations
 const PRODUCT_CATALOG: Product[] = [
   {
@@ -534,7 +541,7 @@ export const generateAIResponse = async (
     const cartState = getCartState();
     
     // Format chat history for DeepSeek API
-    const messages = [
+    const messages: DeepSeekMessage[] = [
       // Add system prompt as the first message
       {
         role: 'system',
@@ -650,7 +657,7 @@ export const generateAIResponse = async (
         console.log("Function results:", functionResults);
         
         // Add the assistant message with function calls
-        messages.push(data.choices[0].message);
+        messages.push(data.choices[0].message as DeepSeekMessage);
         
         // Add the function results
         for (const result of functionResults) {
