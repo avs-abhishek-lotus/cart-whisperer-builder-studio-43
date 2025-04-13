@@ -82,7 +82,8 @@ const ChatSettings: React.FC<ChatSettingsProps> = ({ open, onOpenChange }) => {
                     <p><span className="font-medium">DeepSeek AI:</span> Enhance agent responses using AI (requires API key)</p>
                     <div className="mt-4 text-xs bg-blue-50 p-2 rounded border border-blue-100">
                       <p className="font-medium text-blue-700">How to use AI assistance:</p>
-                      <p className="mt-1">When messaging as an Agent, enable the "Use DeepSeek AI" option to get AI-assisted responses. The AI will help craft better responses for customers based on your message history.</p>
+                      <p className="mt-1">When messaging as an Agent, enable the "Use DeepSeek AI" option to get AI-assisted responses. The AI will help craft better responses based on the entire conversation history, including product information and customer context.</p>
+                      <p className="mt-1">The DeepSeek AI will see the full conversation history, including all messages from both visitors and agents.</p>
                     </div>
                   </div>
                 </AccordionContent>

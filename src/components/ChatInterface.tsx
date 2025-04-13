@@ -77,6 +77,7 @@ const ChatInterface: React.FC = () => {
       role: messageRole,
     };
     
+    // Add user message to chat
     setMessages(prev => [...prev, userMessage]);
     setNewMessage('');
     setIsWaiting(true);
@@ -85,14 +86,17 @@ const ChatInterface: React.FC = () => {
       let botResponse: string;
       let responseRole: 'agent' | 'deepseek' = 'agent';
       
-      // Use DeepSeek if AI is enabled and we have API key
+      // Pass the entire message history to DeepSeek if AI is enabled
       if (useAI && hasApiKey() && (role === 'owner' || role === 'admin')) {
+        // Pass all previous messages for context
         botResponse = await generateAIResponse(newMessage, messages);
         responseRole = 'deepseek';
+        console.log("Using DeepSeek AI with full conversation context");
       } else {
         // Simulate network delay for local response
         await new Promise(resolve => setTimeout(resolve, 1000));
         botResponse = generateLocalResponse(newMessage);
+        console.log("Using local response generator");
       }
       
       const botMessageObj: ChatMessage = {

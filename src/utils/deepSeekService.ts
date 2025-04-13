@@ -27,6 +27,14 @@ Your goal is to:
 - Never make up information about products or policies you don't know about
 - Politely let users know if you need more information to help them
 
+Important: You have access to our product catalog which includes:
+- Premium Wireless Headphones ($129.99): Noise-canceling, 30hr battery life
+- Smart Watch ($199.99): Fitness tracking, heart monitoring, suitable for teens and adults
+- Portable Bluetooth Speaker ($79.99): Waterproof, 12hr playback
+- Ergonomic Keyboard ($89.99): Mechanical keys, wrist support
+- Ultra-thin Laptop Sleeve ($29.99): Various sizes, water-resistant
+
+When making recommendations, consider context from the entire conversation history.
 You are representing our brand, so be courteous and helpful at all times.`;
 
 export const setApiKey = (key: string) => {
@@ -72,17 +80,35 @@ export const generateAIResponse = async (
       }
     ];
     
-    // Add chat history
-    messages.push(...chatHistory.map(msg => ({
-      role: msg.sender === 'user' ? 'user' : 'assistant',
-      content: msg.text
-    })));
-
-    // Add the new user message
-    messages.push({
-      role: 'user',
-      content: userMessage
+    // Add complete chat history for context
+    chatHistory.forEach(msg => {
+      // Convert internal role to DeepSeek API roles
+      const apiRole = msg.sender === 'user' ? 'user' : 'assistant';
+      
+      // Add a prefix to show which role is speaking
+      let content = msg.text;
+      if (msg.role) {
+        // Only add role prefix for agent/visitor messages to provide context
+        if (msg.role === 'visitor' || msg.role === 'agent') {
+          content = `[${msg.role.toUpperCase()}]: ${msg.text}`;
+        }
+      }
+      
+      messages.push({
+        role: apiRole,
+        content: content
+      });
     });
+
+    // Add the new user message if not already in history
+    if (!chatHistory.some(msg => msg.text === userMessage && msg.sender === 'user')) {
+      messages.push({
+        role: 'user',
+        content: userMessage
+      });
+    }
+
+    console.log("Sending messages to DeepSeek:", messages);
 
     const response = await fetch(DEEPSEEK_API_URL, {
       method: 'POST',
