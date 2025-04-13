@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { RoleProvider } from "@/context/RoleContext";
+import CopyrightNotice from "@/components/CopyrightNotice";
 import Index from "./pages/Index";
 import ContactForm from "./pages/ContactForm";
 import NotFound from "./pages/NotFound";
@@ -12,7 +13,6 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Force a refresh when loading the app
   console.log("App component rendered", new Date().toISOString());
   
   return (
@@ -29,6 +29,7 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+          <CopyrightNotice />
         </TooltipProvider>
       </RoleProvider>
     </QueryClientProvider>
