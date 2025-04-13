@@ -5,6 +5,7 @@ import { ShoppingCart, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import RoleSelector from './RoleSelector';
 
 const Navigation: React.FC = () => {
   const { toggleCart, totalItems } = useCart();
@@ -33,6 +34,8 @@ const Navigation: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-4">
+            <RoleSelector />
+            
             <Button 
               onClick={toggleCart} 
               variant="outline" 
