@@ -75,19 +75,21 @@ const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
 // This would typically come from environment variables
 let apiKey = "";
 
+// Database initialization status
+let isInitialized = false;
+
 // Enhanced system prompt with detailed context about the website and shopping capabilities
 const SYSTEM_PROMPT = `You are a helpful shopping assistant for our e-commerce website. 
 
 WEBSITE CONTEXT:
 Our website offers a curated selection of tech products with a shopping cart functionality. Visitors can browse products, add them to their cart, and checkout. The site has product pages with detailed information, a navigation menu, and a persistent shopping cart that shows the current items.
 
-CAPABILITIES:
-1. You can search and recommend products from our catalog.
-2. You can help customers understand product features and compatibility.
-3. You can provide information about shipping, returns, and pricing.
-4. You can suggest alternatives when products don't meet customer needs.
+PRODUCT DATABASE CAPABILITIES:
+You have access to query our product database using the following functions:
+1. searchProducts(query, category) - Search products by text query and optional category
+2. getRecommendedProducts(age, category, priceRange) - Get products filtered by age appropriateness, category, and price range
 
-SHOPPING CART API (conceptual, for your understanding):
+SHOPPING CART API:
 - Current cart contents can be viewed by clicking the cart icon
 - Products can be added to the cart with quantity options
 - Items can be removed from the cart
@@ -106,6 +108,15 @@ ${PRODUCT_CATALOG.map(product =>
    Features: ${product.features?.join(', ')}`
 ).join('\n')}
 
+EXPECTED QUERY PATTERNS:
+When I mention "my daughter is 10 years old and needs something for school", you should:
+1. Identify the age group (child under 12)
+2. Consider the use case (school)
+3. Query the product database with appropriate parameters
+4. Make suitable recommendations based on results
+
+Your responses should mention specific products from our catalog that match the query parameters.
+
 COMMUNICATION STYLE:
 - Be friendly but professional
 - Keep responses concise (1-3 sentences max)
@@ -117,6 +128,8 @@ You are representing our brand, so be courteous and helpful at all times.`;
 
 export const setApiKey = (key: string) => {
   apiKey = key;
+  // Re-initialize connection when API key changes
+  isInitialized = false;
 };
 
 export const hasApiKey = (): boolean => {
@@ -134,6 +147,56 @@ export const loadApiKeyFromStorage = () => {
 
 // Initialize API key load when the module is imported
 loadApiKeyFromStorage();
+
+// Initialize connection to DeepSeek with product database context
+export const initializeDeepSeekConnection = async (): Promise<boolean> => {
+  if (!apiKey) {
+    console.error("Cannot initialize DeepSeek: No API key provided");
+    return false;
+  }
+
+  if (isInitialized) {
+    console.log("DeepSeek connection already initialized");
+    return true;
+  }
+
+  try {
+    // Ping DeepSeek API to verify connection
+    const response = await fetch(DEEPSEEK_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          { role: 'system', content: 'Connection test' },
+          { role: 'user', content: 'Verify connection' }
+        ],
+        max_tokens: 10,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("DeepSeek initialization error:", errorData);
+      throw new Error(`DeepSeek API error: ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    console.log("DeepSeek connection initialized successfully");
+    isInitialized = true;
+    return true;
+  } catch (error) {
+    console.error("Failed to initialize DeepSeek connection:", error);
+    toast({
+      title: "Connection Error",
+      description: "Failed to initialize DeepSeek. Please check your API key.",
+      variant: "destructive",
+    });
+    return false;
+  }
+};
 
 /**
  * Search for products that match certain criteria
@@ -208,6 +271,73 @@ export const getRecommendedProducts = (
   return filtered;
 };
 
+/**
+ * Run a product query against the database and format the results for DeepSeek
+ * @param queryText The natural language query text
+ */
+export const runProductQuery = async (queryText: string): Promise<string> => {
+  // Initialize connection if not already done
+  if (!isInitialized) {
+    const success = await initializeDeepSeekConnection();
+    if (!success) {
+      return "Failed to connect to product database. Please try again later.";
+    }
+  }
+
+  try {
+    // Extract age information if present using simple pattern matching
+    const ageMatch = queryText.match(/(\d+)\s*(year|years|yr|yrs)?\s*(old)?/i);
+    const age = ageMatch ? parseInt(ageMatch[1]) : undefined;
+    
+    // Extract category information if present
+    const categoryKeywords: {[key: string]: string} = {
+      'headphone': 'audio',
+      'speaker': 'audio', 
+      'music': 'audio',
+      'sound': 'audio',
+      'watch': 'wearables',
+      'fitness': 'wearables',
+      'keyboard': 'computer-accessories',
+      'laptop': 'computer-accessories',
+      'computer': 'computer-accessories',
+    };
+    
+    let category: string | undefined;
+    Object.entries(categoryKeywords).forEach(([keyword, cat]) => {
+      if (queryText.toLowerCase().includes(keyword)) {
+        category = cat;
+      }
+    });
+    
+    // Extract price range if present
+    const priceMatch = queryText.match(/(\d+)\s*-\s*(\d+)/);
+    const priceRange = priceMatch ? [parseInt(priceMatch[1]), parseInt(priceMatch[2])] as [number, number] : undefined;
+    
+    // Search for products based on the full query text
+    const searchResults = searchProducts(queryText, category);
+    
+    // Get recommended products based on age, category, and price range
+    const recommendedProducts = getRecommendedProducts(age, category, priceRange);
+    
+    // Combine results, prioritizing search results but ensuring we have recommendations
+    const combinedResults = [...new Set([...searchResults, ...recommendedProducts])].slice(0, 3);
+    
+    if (combinedResults.length === 0) {
+      return "No products found matching your criteria. Would you like to see our most popular items instead?";
+    }
+    
+    // Format results for DeepSeek
+    const resultsText = combinedResults.map(product => 
+      `Product: ${product.name}\nPrice: $${product.price}\nDescription: ${product.description}\nFeatures: ${product.features?.join(', ')}\n`
+    ).join('\n');
+    
+    return `Based on your query, I've found these products in our database:\n\n${resultsText}\n\nWould you like more details about any of these products?`;
+  } catch (error) {
+    console.error("Error running product query:", error);
+    return "I encountered an error while searching our product database. Please try a different query.";
+  }
+};
+
 export const generateAIResponse = async (
   userMessage: string, 
   chatHistory: ChatMessage[]
@@ -221,7 +351,22 @@ export const generateAIResponse = async (
     return "I'm unable to respond right now. Please make sure your API key is configured.";
   }
 
+  // Initialize connection if not already done
+  if (!isInitialized) {
+    await initializeDeepSeekConnection();
+  }
+
   try {
+    // Run product query to enhance response with product data if message contains product-related keywords
+    const productKeywords = ['product', 'recommend', 'buy', 'purchase', 'looking for', 'need', 'want', 'price', 'cost'];
+    const containsProductQuery = productKeywords.some(keyword => userMessage.toLowerCase().includes(keyword));
+    
+    let productQueryResult = "";
+    if (containsProductQuery) {
+      productQueryResult = await runProductQuery(userMessage);
+      console.log("Product query result:", productQueryResult);
+    }
+    
     // Format chat history for DeepSeek API
     const messages = [
       // Add system prompt as the first message
@@ -256,6 +401,14 @@ export const generateAIResponse = async (
       messages.push({
         role: 'user',
         content: userMessage
+      });
+    }
+    
+    // If we have product query results, add them as additional context
+    if (productQueryResult) {
+      messages.push({
+        role: 'system',
+        content: `PRODUCT SEARCH RESULTS: ${productQueryResult}`
       });
     }
 
