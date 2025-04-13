@@ -37,7 +37,8 @@ const ChatInterface: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
   const [isWaiting, setIsWaiting] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [messageRole, setMessageRole] = useState<'visitor' | 'agent' | 'deepseek'>('visitor');
+  const [messageRole, setMessageRole] = useState<'visitor' | 'agent'>('visitor');
+  const [useAI, setUseAI] = useState(false);
   const { addItem, state } = useCart();
   const { role } = useRole();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -54,6 +55,14 @@ const ChatInterface: React.FC = () => {
   const openSettings = () => {
     setSettingsOpen(true);
   };
+
+  // Reset to visitor role when user role changes to visitor
+  useEffect(() => {
+    if (role === 'visitor') {
+      setMessageRole('visitor');
+      setUseAI(false);
+    }
+  }, [role]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,8 +85,8 @@ const ChatInterface: React.FC = () => {
       let botResponse: string;
       let responseRole: 'agent' | 'deepseek' = 'agent';
       
-      // If user selected DeepSeek role, or admin/owner with API key is using it
-      if ((messageRole === 'deepseek' || hasApiKey()) && (role === 'owner' || role === 'admin')) {
+      // Use DeepSeek if AI is enabled and we have API key
+      if (useAI && hasApiKey() && (role === 'owner' || role === 'admin')) {
         botResponse = await generateAIResponse(newMessage, messages);
         responseRole = 'deepseek';
       } else {
@@ -183,15 +192,27 @@ const ChatInterface: React.FC = () => {
                     <div
                       className={`max-w-[75%] rounded-lg p-3 ${getMessageStyle(message)}`}
                     >
-                      <div className="flex items-center mb-1">
-                        {getRoleBadge(message)}
-                        <p className="text-xs opacity-70">
+                      {/* Only show role badges to admin/owner */}
+                      {(role === 'owner' || role === 'admin') && (
+                        <div className="flex items-center mb-1">
+                          {getRoleBadge(message)}
+                          <p className="text-xs opacity-70">
+                            {message.timestamp.toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                        </div>
+                      )}
+                      {/* For visitors just show the time */}
+                      {role === 'visitor' && (
+                        <p className="text-xs opacity-70 mb-1">
                           {message.timestamp.toLocaleTimeString([], {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
                         </p>
-                      </div>
+                      )}
                       <p>{message.text}</p>
                     </div>
                   </div>
@@ -212,45 +233,79 @@ const ChatInterface: React.FC = () => {
             </ScrollArea>
             
             <div className="border-t p-3">
-              <RadioGroup 
-                defaultValue="visitor" 
-                className="flex space-x-4 p-2 mb-2" 
-                value={messageRole}
-                onValueChange={(value) => setMessageRole(value as 'visitor' | 'agent' | 'deepseek')}
-              >
-                <div className="flex items-center space-x-1">
-                  <RadioGroupItem value="visitor" id="visitor" />
-                  <Label htmlFor="visitor">Visitor</Label>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <RadioGroupItem value="agent" id="agent" />
-                  <Label htmlFor="agent">Agent</Label>
-                </div>
-                <RoleGuard allowedRoles={['owner', 'admin']}>
-                  <div className="flex items-center space-x-1">
-                    <RadioGroupItem value="deepseek" id="deepseek" />
-                    <Label htmlFor="deepseek">DeepSeek</Label>
+              {/* Different controls based on user role */}
+              {role === 'visitor' ? (
+                // Simple interface for visitors
+                <form onSubmit={handleSendMessage} className="flex gap-2">
+                  <Input
+                    placeholder="Ask a question..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    className="flex-1"
+                    disabled={isWaiting}
+                  />
+                  <Button 
+                    type="submit" 
+                    size="icon" 
+                    className="bg-cart hover:bg-cart-hover"
+                    disabled={isWaiting || !newMessage.trim()}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </form>
+              ) : (
+                // Advanced interface for admin/owner
+                <>
+                  <div className="flex justify-between items-center mb-2">
+                    <RadioGroup 
+                      defaultValue="visitor" 
+                      className="flex space-x-4" 
+                      value={messageRole}
+                      onValueChange={(value) => setMessageRole(value as 'visitor' | 'agent')}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <RadioGroupItem value="visitor" id="visitor" />
+                        <Label htmlFor="visitor">Visitor</Label>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <RadioGroupItem value="agent" id="agent" />
+                        <Label htmlFor="agent">Agent</Label>
+                      </div>
+                    </RadioGroup>
+                    
+                    {hasApiKey() && (
+                      <div className="flex items-center space-x-2">
+                        <input 
+                          type="checkbox" 
+                          id="use-ai"
+                          checked={useAI}
+                          onChange={(e) => setUseAI(e.target.checked)}
+                          className="h-4 w-4"
+                        />
+                        <Label htmlFor="use-ai" className="text-xs">Use DeepSeek AI</Label>
+                      </div>
+                    )}
                   </div>
-                </RoleGuard>
-              </RadioGroup>
-              
-              <form onSubmit={handleSendMessage} className="flex gap-2">
-                <Input
-                  placeholder="Type a message..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  className="flex-1"
-                  disabled={isWaiting}
-                />
-                <Button 
-                  type="submit" 
-                  size="icon" 
-                  className="bg-cart hover:bg-cart-hover"
-                  disabled={isWaiting || !newMessage.trim()}
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </form>
+                  
+                  <form onSubmit={handleSendMessage} className="flex gap-2">
+                    <Input
+                      placeholder="Type a message..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      className="flex-1"
+                      disabled={isWaiting}
+                    />
+                    <Button 
+                      type="submit" 
+                      size="icon" 
+                      className="bg-cart hover:bg-cart-hover"
+                      disabled={isWaiting || !newMessage.trim()}
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </form>
+                </>
+              )}
             </div>
           </>
         )}

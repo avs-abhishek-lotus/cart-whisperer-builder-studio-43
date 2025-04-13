@@ -79,7 +79,11 @@ const ChatSettings: React.FC<ChatSettingsProps> = ({ open, onOpenChange }) => {
                   <div className="space-y-2 text-sm text-muted-foreground">
                     <p><span className="font-medium">Visitor:</span> Messages sent as a website visitor/customer</p>
                     <p><span className="font-medium">Agent:</span> Messages sent as a customer support agent</p>
-                    <p><span className="font-medium">DeepSeek:</span> Uses the DeepSeek API for AI-assisted responses (requires API key)</p>
+                    <p><span className="font-medium">DeepSeek AI:</span> Enhance agent responses using AI (requires API key)</p>
+                    <div className="mt-4 text-xs bg-blue-50 p-2 rounded border border-blue-100">
+                      <p className="font-medium text-blue-700">How to use AI assistance:</p>
+                      <p className="mt-1">When messaging as an Agent, enable the "Use DeepSeek AI" option to get AI-assisted responses. The AI will help craft better responses for customers based on your message history.</p>
+                    </div>
                   </div>
                 </AccordionContent>
               </AccordionItem>
