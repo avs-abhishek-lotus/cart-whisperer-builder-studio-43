@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
-import { Mail, User, Phone, MessageSquare, Send } from "lucide-react";
+import { Mail, User, Phone, MessageSquare, Send, Gift, Star } from "lucide-react";
 
 // Define the form schema
 const formSchema = z.object({
@@ -71,7 +71,7 @@ const ContactForm = () => {
     // Show success toast
     toast({
       title: "Contact request submitted!",
-      description: "We'll be in touch with you shortly.",
+      description: "We'll be in touch with you shortly. Your free AI assistant will be set up within 24 hours!",
     });
     
     // Reset form
@@ -94,6 +94,26 @@ const ContactForm = () => {
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Have questions about our products or services? We'd love to hear from you!
             </p>
+          </div>
+          
+          {/* Incentive Banner */}
+          <div className="max-w-5xl mx-auto mb-8 bg-gradient-to-r from-purple-100 to-blue-100 p-6 rounded-lg border border-purple-200 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="bg-white p-3 rounded-full">
+                <Gift className="h-6 w-6 text-purple-500" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-purple-700 flex items-center gap-2">
+                  Special Offer <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                </h2>
+                <p className="text-purple-800 font-medium">
+                  Get Free AI Assistant Services Customized for You for a Month!
+                </p>
+                <p className="text-sm text-purple-600 mt-1">
+                  Complete this form to unlock your personalized AI assistant that will help streamline your workflow.
+                </p>
+              </div>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
@@ -246,7 +266,7 @@ const ContactForm = () => {
                   
                   <Button type="submit" className="w-full">
                     <Send className="mr-2 h-4 w-4" />
-                    Submit Request
+                    Submit Request & Get Free AI Assistant
                   </Button>
                 </form>
               </Form>
