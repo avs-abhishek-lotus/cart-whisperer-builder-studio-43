@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 
 // Interface for chat messages
@@ -82,21 +81,60 @@ export const generateAIResponse = async (
   }
 };
 
-// Fallback to generate response when API is not configured
 export const generateLocalResponse = (userMessage: string): string => {
   const lowerCaseMessage = userMessage.toLowerCase();
   
-  if (lowerCaseMessage.includes('discount') || lowerCaseMessage.includes('coupon')) {
-    return "Great news! Use code WELCOME10 at checkout for 10% off your first order!";
-  } else if (lowerCaseMessage.includes('shipping') || lowerCaseMessage.includes('delivery')) {
-    return "We offer free shipping on all orders over $50! Standard delivery takes 3-5 business days.";
-  } else if (lowerCaseMessage.includes('return') || lowerCaseMessage.includes('refund')) {
-    return "Our return policy is simple: 30-day money-back guarantee, no questions asked!";
-  } else if (lowerCaseMessage.includes('recommendation') || lowerCaseMessage.includes('suggest') || lowerCaseMessage.includes('what should')) {
-    return "Based on our best sellers, I'd recommend our premium wireless headphones or our ergonomic laptop stand. Both have excellent reviews!";
-  } else if (lowerCaseMessage.includes('hello') || lowerCaseMessage.includes('hi')) {
-    return "Hello there! How can I help with your shopping today?";
-  } else {
-    return "I'd be happy to help you with that! Is there anything specific you'd like to know about our products?";
+  // Enhanced conversation patterns
+  const conversationPatterns = [
+    {
+      keywords: ['help', 'assistance', 'support'],
+      responses: [
+        "I'm here to help! What specific information can I assist you with today?",
+        "Our support team is ready. What questions do you have about our products or services?",
+        "Need guidance? I'm your virtual assistant, ready to provide personalized recommendations."
+      ]
+    },
+    {
+      keywords: ['recommendation', 'suggest', 'what should', 'best product'],
+      responses: [
+        "Based on our current bestsellers, I recommend checking out our premium wireless headphones or ergonomic laptop stand.",
+        "Our top-rated products include high-performance tech accessories and ergonomic office solutions.",
+        "Looking for a great product? I can help you find something that matches your needs perfectly!"
+      ]
+    },
+    {
+      keywords: ['pricing', 'cost', 'expensive'],
+      responses: [
+        "We offer competitive pricing with high-quality products. Would you like to know more about our price ranges?",
+        "Quality doesn't always mean expensive. We have options for every budget.",
+        "Our pricing is transparent, and we offer great value for money across our product lines."
+      ]
+    },
+    {
+      keywords: ['shipping', 'delivery', 'arrive'],
+      responses: [
+        "We offer free shipping on orders over $50! Standard delivery takes 3-5 business days.",
+        "Shipping is quick and reliable. Most orders are processed within 1-2 business days.",
+        "Want to know more about our shipping options? I'm happy to provide details!"
+      ]
+    }
+  ];
+
+  // Find matching pattern
+  for (const pattern of conversationPatterns) {
+    if (pattern.keywords.some(keyword => lowerCaseMessage.includes(keyword))) {
+      return pattern.responses[Math.floor(Math.random() * pattern.responses.length)];
+    }
   }
+
+  // Fallback responses with more personality
+  const genericResponses = [
+    "Interesting point! How can I help you further?",
+    "I'm listening. What else would you like to know?",
+    "Our team is dedicated to providing the best shopping experience. How can I assist you today?",
+    "I'm here to make your shopping experience smooth and enjoyable. What can I do for you?"
+  ];
+
+  // Return a random generic response if no specific pattern matches
+  return genericResponses[Math.floor(Math.random() * genericResponses.length)];
 };
