@@ -4,6 +4,7 @@ import { useCart } from '@/hooks/useCart';
 import { ShoppingCart, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const Navigation: React.FC = () => {
   const { toggleCart, totalItems } = useCart();
@@ -18,17 +19,17 @@ const Navigation: React.FC = () => {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <a href="/" className="text-xl font-bold text-cart hover:text-cart-hover transition-colors">
+            <Link to="/" className="text-xl font-bold text-cart hover:text-cart-hover transition-colors">
               CartWhisperer
-            </a>
+            </Link>
           </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <a href="#" className="text-gray-700 hover:text-cart transition-colors">Home</a>
-            <a href="#" className="text-gray-700 hover:text-cart transition-colors">Products</a>
-            <a href="#" className="text-gray-700 hover:text-cart transition-colors">About</a>
-            <a href="#" className="text-gray-700 hover:text-cart transition-colors">Contact</a>
+            <Link to="/" className="text-gray-700 hover:text-cart transition-colors">Home</Link>
+            <Link to="/" className="text-gray-700 hover:text-cart transition-colors">Products</Link>
+            <Link to="/" className="text-gray-700 hover:text-cart transition-colors">About</Link>
+            <Link to="/contact" className="text-gray-700 hover:text-cart transition-colors">Contact</Link>
           </div>
 
           <div className="flex items-center space-x-4">
@@ -58,10 +59,10 @@ const Navigation: React.FC = () => {
         {isMenuOpen && (
           <div className="md:hidden pt-4 pb-2 animate-fade-in">
             <div className="flex flex-col space-y-4">
-              <a href="#" className="text-gray-700 hover:text-cart transition-colors">Home</a>
-              <a href="#" className="text-gray-700 hover:text-cart transition-colors">Products</a>
-              <a href="#" className="text-gray-700 hover:text-cart transition-colors">About</a>
-              <a href="#" className="text-gray-700 hover:text-cart transition-colors">Contact</a>
+              <Link to="/" className="text-gray-700 hover:text-cart transition-colors">Home</Link>
+              <Link to="/" className="text-gray-700 hover:text-cart transition-colors">Products</Link>
+              <Link to="/" className="text-gray-700 hover:text-cart transition-colors">About</Link>
+              <Link to="/contact" className="text-gray-700 hover:text-cart transition-colors">Contact</Link>
             </div>
           </div>
         )}
