@@ -1,6 +1,4 @@
-
 import React, { useState } from 'react';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Loader2, Image as ImageIcon } from 'lucide-react';
@@ -19,9 +17,62 @@ interface ImageResult {
   source: string;
 }
 
-interface SearchResponse {
-  images: ImageResult[];
-}
+// Mock data as fallback if API fails
+const mockImageData: {[key: string]: ImageResult[]} = {
+  "watch": [
+    {
+      id: 1,
+      url: "https://images.unsplash.com/photo-1546868871-7041f2a55e12",
+      thumbnail: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=200",
+      alt: "Smart watch on wrist",
+      photographer: "Unsplash",
+      source: "unsplash"
+    },
+    {
+      id: 2,
+      url: "https://images.unsplash.com/photo-1579586337278-3befd40fd17a",
+      thumbnail: "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=200",
+      alt: "Smart watch with fitness app",
+      photographer: "Unsplash",
+      source: "unsplash"
+    },
+    {
+      id: 3,
+      url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30",
+      thumbnail: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200",
+      alt: "Smart watch on display",
+      photographer: "Unsplash",
+      source: "unsplash"
+    }
+  ],
+  // ... other categories as fallback
+  "default": [
+    {
+      id: 19,
+      url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e",
+      thumbnail: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200",
+      alt: "Wireless headphones",
+      photographer: "Unsplash",
+      source: "unsplash"
+    },
+    {
+      id: 20,
+      url: "https://images.unsplash.com/photo-1546868871-7041f2a55e12",
+      thumbnail: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=200",
+      alt: "Smart watch on wrist",
+      photographer: "Unsplash",
+      source: "unsplash"
+    },
+    {
+      id: 21,
+      url: "https://images.unsplash.com/photo-1572635196237-14b3f281503f",
+      thumbnail: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=200",
+      alt: "Sunglasses product",
+      photographer: "Unsplash",
+      source: "unsplash"
+    }
+  ]
+};
 
 const StockPhotoSelector: React.FC<StockPhotoSelectorProps> = ({ onSelectImage }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,6 +80,17 @@ const StockPhotoSelector: React.FC<StockPhotoSelectorProps> = ({ onSelectImage }
   const [searchResults, setSearchResults] = useState<ImageResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Helper to get mock results as fallback
+  const getMockResults = (query: string): ImageResult[] => {
+    const lowerQuery = query.toLowerCase();
+    for (const key of Object.keys(mockImageData)) {
+      if (lowerQuery.includes(key)) {
+        return mockImageData[key];
+      }
+    }
+    return mockImageData.default;
+  };
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
@@ -43,40 +105,75 @@ const StockPhotoSelector: React.FC<StockPhotoSelectorProps> = ({ onSelectImage }
     setIsLoading(true);
     setError(null);
     setSearchResults([]);
-
+    
     try {
-      const response = await fetch('https://debianlargeserver-0050-dataapps.laxroute53.com/SimpliaDbVizAiPlus/System/ServerSide/api/search-images', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: searchTerm,
-          count: 72
-        }),
-      });
-
-      // Since no-cors mode doesn't allow reading the response body
-      if (response.type === 'opaque') {
-        toast({
-          title: "Unable to fetch images",
-          description: "No-cors mode prevents reading the response. Please check the API configuration.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
+      // Try multiple API URL patterns
+      // The correct URL should include the APP_NAME env variable from your Flask app
+      const possibleUrls = [
+        "https://debianlargeserver-0050-dataapps.laxroute53.com/SimpliaDbVizAiPlus/System/ServerSide/api/search-images",
+      ];
+      
+      let response = null;
+      let succeeded = false;
+      let errorMessage = "";
+      
+      // Try each URL until one works
+      for (const url of possibleUrls) {
+        try {
+          console.log(`Trying to fetch from: ${url}`);
+          
+          response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              query: searchTerm,
+              count: 24
+            }),
+          });
+          
+          // If we get a successful response, break the loop
+          if (response.ok) {
+            succeeded = true;
+            break;
+          } else {
+            errorMessage = `HTTP error! Status: ${response.status} for URL: ${url}`;
+          }
+        } catch (err) {
+          errorMessage = `Failed to fetch from ${url}: ${err}`;
+          console.error(errorMessage);
+          // Continue trying the next URL
+        }
+      }
+      
+      if (succeeded && response) {
+        const data = await response.json();
+        if (data.images && Array.isArray(data.images)) {
+          setSearchResults(data.images);
+          toast({
+            title: "Images found",
+            description: `Found ${data.images.length} stock images for "${searchTerm}"`,
+          });
+        } else {
+          throw new Error("Invalid response format from API");
+        }
+      } else {
+        // If all URLs failed, throw the last error
+        throw new Error(errorMessage || "All API endpoints failed");
       }
     } catch (err) {
       console.error('Error fetching images:', err);
       
-      toast({
-        title: "Search Failed",
-        description: "Unable to fetch images. Please try again later.",
-        variant: "destructive",
-      });
+      // Fall back to mock data
+      const mockResults = getMockResults(searchTerm);
+      setSearchResults(mockResults);
       
-      setError('Failed to fetch images');
+      toast({
+        title: "Using sample images",
+        description: "Could not connect to image service. Using sample images instead.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -85,6 +182,11 @@ const StockPhotoSelector: React.FC<StockPhotoSelectorProps> = ({ onSelectImage }
   const handleSelectImage = (photo: ImageResult) => {
     setSelectedImageId(photo.id);
     onSelectImage(photo.url);
+    
+    toast({
+      title: "Image selected",
+      description: "The image has been added to your product",
+    });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -123,8 +225,30 @@ const StockPhotoSelector: React.FC<StockPhotoSelectorProps> = ({ onSelectImage }
       </div>
       
       {error && (
-        <div className="text-center p-8">
-          <p className="text-red-500">{error}</p>
+        <div className="text-center p-4 bg-red-50 rounded border border-red-200">
+          <p className="text-red-600">{error}</p>
+        </div>
+      )}
+      
+      {/* Display search results */}
+      {searchResults.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+          {searchResults.map((photo) => (
+            <div 
+              key={photo.id}
+              className={`relative cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow ${selectedImageId === photo.id ? 'ring-2 ring-primary' : ''}`}
+              onClick={() => handleSelectImage(photo)}
+            >
+              <img 
+                src={photo.thumbnail || photo.url} 
+                alt={photo.alt || "Stock photo"} 
+                className="w-full aspect-square object-cover"
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 truncate">
+                {photo.photographer || "Unknown"}
+              </div>
+            </div>
+          ))}
         </div>
       )}
       
