@@ -98,12 +98,12 @@ const StockPhotoSelector: React.FC<StockPhotoSelectorProps> = ({ onSelectImage }
     try {
       const response = await fetch('https://debianlargeserver-0050-dataapps.laxroute53.com/SimpliaDbVizAiPlus/System/ServerSide/api/search-images', {
         method: 'POST',
-        mode: 'no-cors', // Set mode to no-cors to avoid CORS issues
+        mode: 'no-cors',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query: searchTerm,
+          query: searchTerm, // Using the searchTerm from state instead of hardcoded value
           count: 72
         }),
       });
